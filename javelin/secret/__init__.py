@@ -1,0 +1,1 @@
+from .vault_injector_secret_provider import VaultInjectorSecretProvider
