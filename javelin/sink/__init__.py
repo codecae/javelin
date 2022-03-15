@@ -1,1 +1,2 @@
 from .azure_data_lake_storage import AzureDataLakeStorageSink
+from .local_file_sink import LocalFileSink
