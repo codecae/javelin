@@ -5,6 +5,7 @@ import json
 import pandas
 from io import BytesIO
 from fastavro import writer, parse_schema
+from enum import Enum
 
 PYTHON_AVRO_TYPE_MAP = {
     int: 'int',
@@ -16,7 +17,11 @@ PYTHON_AVRO_TYPE_MAP = {
     bytes: 'bytes'
 }
 
-def avro_encoder():
+class AvroCompressionType(Enum):
+    DEFLATE = 'deflate'
+    SNAPPY = 'snappy'
+
+def avro_encoder(compressionType: AvroCompressionType):
     def _avro_encoder(source):
         def subscribe(observer, scheduler = None):            
             def on_next(value):
@@ -38,9 +43,8 @@ def avro_encoder():
                         "name": attr.name,
                         "type": (_datatype, [_datatype, "null"])[attr.nullable]
                     })
-                value.content = json.loads(value.content.to_json(orient='records', date_format='iso'))
-                value.content = [(lambda z: {k:v for k,v in z.items() if v != None})(z) for z in value.content]
-                writer(_bytes, parse_schema(_schema), value.content, codec='snappy')
+                value.content = [(lambda z: {k:(v.isoformat() if type(v)==pandas.Timestamp else v) for k,v in z.items() if pandas.notnull(v)})(z) for z in value.content.to_dict('records')]
+                writer(_bytes, parse_schema(_schema), value.content, codec=compressionType.value)
                 value.header.object_format = 'avro'
                 value.content = _bytes.getvalue()
                 observer.on_next(value)

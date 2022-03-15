@@ -3,7 +3,7 @@ from rx import from_iterable
 
 class PipelineComponent(ABC):
     @abstractmethod
-    def yield_per(rows: int) -> dict:
+    def yield_per(self, partition_rows: int = 10000, yield_rows: int = 10000) -> dict:
         """Yields rows from datasource
 
         Args:
@@ -13,5 +13,5 @@ class PipelineComponent(ABC):
             dict: rows
         """
         
-    def observable_per(self, rows: int = 10000):
-        return from_iterable(self.yield_per(rows))
+    def observable_per(self, partition_rows: int = 10000, yield_rows: int = 10000):
+        return from_iterable(self.yield_per(partition_rows=partition_rows, yield_rows=yield_rows))

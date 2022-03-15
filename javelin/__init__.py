@@ -1,2 +1,2 @@
-from .source import SqlServerConnection, SqlServerSource
+from .source import SqlConnection, SqlTableSource
 from .secret import VaultInjectorSecretProvider

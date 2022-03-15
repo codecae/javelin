@@ -1,33 +1,21 @@
-import json
-from datetime import datetime
-import time
-from dataclasses import dataclass, field
 from sqlalchemy import create_engine, MetaData, Table, select
 from sqlalchemy.engine import URL
 import pandas as pd
-from rx import from_iterable, Observable
+import datetime
+from rx import from_iterable
 from .source import SourceComponent
-from javelin.common import ComponentMetadata, ComponentMessage, AttributeDefinition
+from .sql_connection import SqlConnection
+from ..common import ComponentMetadata, ComponentMessage, AttributeDefinition
 
-@dataclass
-class SqlServerConnection:
-    drivername: str = "mssql+pyodbc"
-    username: str = ""
-    password: str = ""
-    host: str = ""
-    port: int = None
-    database: str = ""
-    driver_options: dict = field(default_factory=dict)
-
-class SqlServerSource(SourceComponent):
-    def __init__(self, config: SqlServerConnection):
+class SqlTableSource(SourceComponent):
+    def __init__(self, config: SqlConnection):
         self._config = config
         self._table = None
         self._columns = None
 
     def _engine(self):
         _eng = create_engine(
-            URL(
+            URL.create(
                 drivername=self._config.drivername,
                 host=self._config.host,
                 port=self._config.port,
@@ -75,14 +63,14 @@ class SqlServerSource(SourceComponent):
                 object_attributes=[AttributeDefinition(name=c.name, datatype=c.type.python_type, nullable=c.nullable, ref=c) for c in self._columns]
             )
 
-    def yield_per(self, rows: int = 10000) -> list:
+    def yield_per(self, partition_rows: int = 10000, yield_rows: int = 10000) -> list:
         for _reflection in self._reflection():
             for _connection in self._connection():
-                _intcols = {c.name: "Int64" for c in self._columns if c.type.python_type == int}
+                _map_cols = {c.name: "Int64" for c in self._columns if c.type.python_type == int}
                 _select = select(self._columns)
-                _results = _connection.execute(_select).yield_per(rows)
-                for _partition in _results.partitions(rows):            
-                    _df = pd.DataFrame(_partition).astype(_intcols)
+                _results = _connection.execute(_select).yield_per(yield_rows)
+                for _partition in _results.partitions(partition_rows):       
+                    _df = pd.DataFrame(_partition).astype(_map_cols)
                     _reflection.object_format=type(_df)
                     yield ComponentMessage(
                         header=_reflection,

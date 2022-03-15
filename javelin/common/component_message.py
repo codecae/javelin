@@ -4,6 +4,7 @@ from datetime import datetime
 @dataclass
 class ComponentMetadata:
     name: str = None
+    schema_hash: str = None
     object_format: str = None
     object_namespace: str = None
     object_name: str = None

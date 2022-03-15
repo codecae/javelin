@@ -1,1 +1,2 @@
-from .sql_server_source import SqlServerConnection, SqlServerSource
+from .sql_connection import SqlConnection
+from .sql_table_source import SqlTableSource
