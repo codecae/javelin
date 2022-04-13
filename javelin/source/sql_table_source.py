@@ -66,13 +66,14 @@ class SqlTableSource(SourceComponent):
     def yield_per(self, partition_rows: int = 10000, yield_rows: int = 10000) -> list:
         for _reflection in self._reflection():
             for _connection in self._connection():
+                _columns = tuple((c.name for c in self._columns))
                 _map_cols = {c.name: "Int64" for c in self._columns if c.type.python_type == int}
                 _select = select(self._columns)
                 _results = _connection.execute(_select).yield_per(yield_rows)
                 for _partition in _results.partitions(partition_rows):       
-                    _df = pd.DataFrame(_partition).astype(_map_cols)
+                    _df = pd.DataFrame(_partition, columns=_columns).astype(_map_cols)
                     _reflection.object_format=type(_df)
                     yield ComponentMessage(
                         header=_reflection,
-                        content=_df
+                        content=_partition
                     )
